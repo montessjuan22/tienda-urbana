@@ -1,5 +1,4 @@
 flask
-werkzeug
 gunicorn
 werkzeug
-PyMySQL
+pymysql
