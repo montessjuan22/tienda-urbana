@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio - Tienda Urbana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col justify-between p-6">
+    <!-- Navbar superior -->
+    <header class="max-w-4xl w-full mx-auto flex justify-between items-center py-4 border-b border-gray-800/80">
+        <h1 class="text-xl font-black tracking-wider text-white">TIENDA <span class="text-red-600">URBANA</span></h1>
+        <div class="flex items-center gap-4">
+            <span class="text-xs text-gray-400 hidden sm:inline">Conectado como: <strong class="text-white">{{
+                    session["usuario"] }}</strong></span>
+            <a href="{{ url_for('salir') }}"
+                class="px-4 py-2 bg-gray-900 hover:bg-red-950/40 text-gray-300 hover:text-red-400 border border-gray-800 rounded-xl text-xs font-semibold transition">Cerrar
+                sesión</a>
+        </div>
+    </header>
+
+    <!-- Contenido Principal tipo Dashboard -->
+    <main
+        class="max-w-md w-full mx-auto bg-gray-900 border border-gray-800/80 rounded-2xl p-8 shadow-2xl text-center relative overflow-hidden my-auto">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-700"></div>
+
+        <div
+            class="w-16 h-16 bg-red-950/60 border border-red-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
+            👋
+        </div>
+
+        <h2 class="text-2xl font-black tracking-tight text-white mb-2">¡Bienvenido, <span class="text-red-500">{{
+                session["usuario"] }}</span>!</h2>
+        <p class="text-gray-400 text-sm mb-8 leading-relaxed">Has iniciado sesión correctamente en el sistema de gestión
+            de Tienda Urbana.</p>
+
+        <div class="p-4 bg-gray-950 border border-gray-800 rounded-xl text-left text-xs text-gray-400 space-y-2">
+            <div class="flex justify-between">
+                <span>Estado de sesión:</span>
+                <span class="text-green-400 font-semibold flex items-center gap-1">● Activa</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Seguridad:</span>
+                <span class="text-white font-medium">Hash de clave verificado</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-gray-600 py-4">
+        Tienda Urbana &copy; 2026 — Todos los derechos reservados.
+    </footer>
+</body>
+
+</html>
