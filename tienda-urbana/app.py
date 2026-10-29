@@ -55,9 +55,9 @@ DB_NAME = os.environ.get(
 
 # Cuenta de administrador principal (se crea/actualiza al arrancar).
 # En Railway define ADMIN_EMAIL y ADMIN_PASSWORD en Variables.
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@tienda.com").strip().lower()
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "montessjuan22@gmail.com").strip().lower()
 ADMIN_PASSWORD_ENV = os.environ.get("ADMIN_PASSWORD")
-ADMIN_PASSWORD = ADMIN_PASSWORD_ENV or "admin123"
+ADMIN_PASSWORD = ADMIN_PASSWORD_ENV or "Juansemontes***1140"
 
 
 def create_connection(database=DB_NAME):
