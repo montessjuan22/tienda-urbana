@@ -203,16 +203,14 @@ def init_db():
                     ),
                 )
             elif ADMIN_PASSWORD_ENV:
-                # Si defines ADMIN_PASSWORD en Railway, se restablece
-                # la contraseña de esa cuenta en cada arranque.
                 cursor.execute(
-                    "UPDATE users SET password_hash=%s, role=%s WHERE id=%s",
-                    (
-                        generate_password_hash(ADMIN_PASSWORD),
-                        "admin",
-                        existing["id"],
-                    ),
-                )
+                "UPDATE users SET password_hash=%s, role=%s WHERE id=%s",
+                (
+                    generate_password_hash(ADMIN_PASSWORD),
+                    "admin",
+                    existing["id"],
+        ),
+    )
             elif existing["role"] != "admin":
                 cursor.execute(
                     "UPDATE users SET role=%s WHERE id=%s",
