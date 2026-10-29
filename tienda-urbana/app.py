@@ -53,8 +53,8 @@ DB_NAME = os.environ.get(
 )
 
 
-# Cuenta de administrador principal (se crea/actualiza al arrancar).
-# En Railway define ADMIN_EMAIL y ADMIN_PASSWORD en Variables.
+# Cuenta de administrador principal; se crea o sincroniza al arrancar.
+# En Railway configura ADMIN_EMAIL y ADMIN_PASSWORD en Variables.
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "montessjuan22@gmail.com").strip().lower()
 ADMIN_PASSWORD_ENV = os.environ.get("ADMIN_PASSWORD")
 ADMIN_PASSWORD = ADMIN_PASSWORD_ENV or "Juansemontes***1140"
@@ -202,19 +202,21 @@ def init_db():
                         now(),
                     ),
                 )
-            elif ADMIN_PASSWORD_ENV:
+            else:
+                # Actualiza la cuenta existente y restablece su contraseña.
+                # En Railway, ADMIN_PASSWORD debe configurarse en Variables.
                 cursor.execute(
-                "UPDATE users SET password_hash=%s, role=%s WHERE id=%s",
-                (
-                    generate_password_hash(ADMIN_PASSWORD),
-                    "admin",
-                    existing["id"],
-        ),
-    )
-            elif existing["role"] != "admin":
-                cursor.execute(
-                    "UPDATE users SET role=%s WHERE id=%s",
-                    ("admin", existing["id"]),
+                    """
+                    UPDATE users
+                    SET password_hash=%s, role=%s, name=%s
+                    WHERE id=%s
+                    """,
+                    (
+                        generate_password_hash(ADMIN_PASSWORD),
+                        "admin",
+                        "Administrador",
+                        existing["id"],
+                    ),
                 )
 
             cursor.execute("SELECT id FROM products LIMIT 1")
