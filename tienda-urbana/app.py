@@ -53,6 +53,13 @@ DB_NAME = os.environ.get(
 )
 
 
+# Cuenta de administrador principal (se crea/actualiza al arrancar).
+# En Railway define ADMIN_EMAIL y ADMIN_PASSWORD en Variables.
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@tienda.com").strip().lower()
+ADMIN_PASSWORD_ENV = os.environ.get("ADMIN_PASSWORD")
+ADMIN_PASSWORD = ADMIN_PASSWORD_ENV or "admin123"
+
+
 def create_connection(database=DB_NAME):
     """Crea una conexión nueva a MySQL."""
     config = {
@@ -175,11 +182,12 @@ def init_db():
                     cursor.execute(statement)
 
             cursor.execute(
-                "SELECT id FROM users WHERE role = %s LIMIT 1",
-                ("admin",)
+                "SELECT id, role FROM users WHERE email = %s",
+                (ADMIN_EMAIL,),
             )
+            existing = cursor.fetchone()
 
-            if not cursor.fetchone():
+            if existing is None:
                 cursor.execute(
                     """
                     INSERT INTO users
@@ -188,11 +196,27 @@ def init_db():
                     """,
                     (
                         "Administrador",
-                        "admin@tienda.com",
-                        generate_password_hash("admin123"),
+                        ADMIN_EMAIL,
+                        generate_password_hash(ADMIN_PASSWORD),
                         "admin",
                         now(),
                     ),
+                )
+            elif ADMIN_PASSWORD_ENV:
+                # Si defines ADMIN_PASSWORD en Railway, se restablece
+                # la contraseña de esa cuenta en cada arranque.
+                cursor.execute(
+                    "UPDATE users SET password_hash=%s, role=%s WHERE id=%s",
+                    (
+                        generate_password_hash(ADMIN_PASSWORD),
+                        "admin",
+                        existing["id"],
+                    ),
+                )
+            elif existing["role"] != "admin":
+                cursor.execute(
+                    "UPDATE users SET role=%s WHERE id=%s",
+                    ("admin", existing["id"]),
                 )
 
             cursor.execute("SELECT id FROM products LIMIT 1")
@@ -760,6 +784,115 @@ def all_users():
             """
         )
     )
+
+
+@app.post("/api/admin/users")
+@login_required(admin=True)
+def admin_create_user():
+    """Crea un administrador nuevo o promueve a un usuario existente."""
+    data = get_json()
+
+    if data is None:
+        return err("La solicitud debe contener datos JSON.")
+
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = data.get("password", "")
+
+    if not email or "@" not in email or len(email) > 255:
+        return err("Introduce un correo electrónico válido.")
+
+    conn = db()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, role FROM users WHERE email = %s", (email,)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                if existing["role"] == "admin":
+                    conn.rollback()
+                    return err("Ese correo ya es administrador.", 409)
+
+                cursor.execute(
+                    "UPDATE users SET role=%s WHERE id=%s",
+                    ("admin", existing["id"]),
+                )
+                conn.commit()
+                return jsonify(ok=True, promoted=True)
+
+            if not name or len(name) > 255:
+                conn.rollback()
+                return err("Introduce un nombre válido.")
+
+            if not isinstance(password, str) or len(password) < 6:
+                conn.rollback()
+                return err("La contraseña debe tener al menos 6 caracteres.")
+
+            cursor.execute(
+                """
+                INSERT INTO users
+                (name, email, password_hash, role, created_at)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (
+                    name,
+                    email,
+                    generate_password_hash(password),
+                    "admin",
+                    now(),
+                ),
+            )
+
+        conn.commit()
+        return jsonify(ok=True, promoted=False), 201
+
+    except pymysql.err.IntegrityError:
+        conn.rollback()
+        return err("Ese correo ya tiene una cuenta.", 409)
+
+    except pymysql.MySQLError:
+        conn.rollback()
+        app.logger.exception("Error creando administrador")
+        return err("No se pudo crear el administrador.", 500)
+
+
+@app.put("/api/admin/users/<int:uid>/role")
+@login_required(admin=True)
+def admin_set_role(uid):
+    """Convierte a un usuario en admin o lo regresa a cliente."""
+    data = get_json() or {}
+    role = data.get("role")
+
+    if role not in ("admin", "customer"):
+        return err("Rol no válido.")
+
+    if uid == session["uid"] and role != "admin":
+        return err("No puedes quitarte a ti mismo el rol de administrador.")
+
+    conn = db()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT id FROM users WHERE id = %s", (uid,))
+
+            if not cursor.fetchone():
+                conn.rollback()
+                return err("Usuario no encontrado.", 404)
+
+            cursor.execute(
+                "UPDATE users SET role=%s WHERE id=%s", (role, uid)
+            )
+
+        conn.commit()
+        return jsonify(ok=True)
+
+    except pymysql.MySQLError:
+        conn.rollback()
+        app.logger.exception("Error cambiando el rol")
+        return err("No se pudo cambiar el rol.", 500)
 
 
 # =========================================================
