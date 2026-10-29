@@ -1,10 +1,10 @@
-
 """
 Tienda urbana: Flask + MySQL
 Compatible con Railway y entorno local.
 """
 
 import os
+import time
 import secrets
 import functools
 from datetime import datetime
@@ -779,9 +779,30 @@ def handle_mysql_error(error):
 # ARRANQUE
 # =========================================================
 
-if __name__ == "__main__":
-    init_db()
+def init_db_safe(retries=5, delay=3):
+    """
+    Crea tablas, admin y productos al importar la app (gunicorn en Railway).
+    Reintenta por si MySQL aún no está listo al arrancar.
+    """
+    for attempt in range(1, retries + 1):
+        try:
+            init_db()
+            app.logger.info("Base de datos inicializada correctamente.")
+            return
+        except Exception:
+            app.logger.exception(
+                "No se pudo inicializar la base de datos "
+                "(intento %s de %s)", attempt, retries
+            )
+            if attempt < retries:
+                time.sleep(delay)
 
+
+# Se ejecuta tanto con `python app.py` como con `gunicorn app:app`.
+init_db_safe()
+
+
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
 
     app.run(
