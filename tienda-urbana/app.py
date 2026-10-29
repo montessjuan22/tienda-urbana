@@ -175,7 +175,6 @@ def init_db():
                         ),
                     )
                 else:
-                    # Actualiza la contraseña y el rol únicamente si ya existe el correo configurado
                     cursor.execute(
                         """
                         UPDATE users
@@ -259,7 +258,8 @@ def get_json():
     return data
 
 
-# ========================================================= RUTAS Y CONTROLADORES
+# =========================================================
+# RUTAS Y CONTROLADORES
 # =========================================================
 
 @app.get("/")
@@ -346,13 +346,19 @@ def products():
     return jsonify(rows("SELECT * FROM products ORDER BY id DESC"))
 
 
-# (Demás rutas de productos, pago, pedidos y administración se mantienen igual...)
+# =========================================================
+# ERRORES DE CONEXIÓN
+# =========================================================
 
 @app.errorhandler(pymysql.MySQLError)
 def handle_mysql_error(error):
     app.logger.exception("Error de base de datos: %s", error)
     return jsonify(error="Error de conexión o consulta a la base de datos."), 500
 
+
+# =========================================================
+# ARRANQUE
+# =========================================================
 
 def init_db_safe(retries=5, delay=3):
     for attempt in range(1, retries + 1):
